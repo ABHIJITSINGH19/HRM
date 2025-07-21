@@ -11,7 +11,7 @@ import leaveRoutes from "./Routes/leaveRoutes.js";
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:5173/' }));
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   next();
