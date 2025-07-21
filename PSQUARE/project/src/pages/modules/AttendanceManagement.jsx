@@ -332,6 +332,7 @@ const AttendanceManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
@@ -356,6 +357,7 @@ const AttendanceManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
