@@ -143,11 +143,6 @@ const leaveSlice = createSlice({
     });
     builder.addCase(createLeave.fulfilled, (state, action) => {
       state.isLoading = false;
-      if (Array.isArray(state.data)) {
-        state.data.push(action.payload);
-      } else {
-        state.data = [action.payload];
-      }
     });
     builder.addCase(createLeave.rejected, (state, action) => {
       state.isLoading = false;
