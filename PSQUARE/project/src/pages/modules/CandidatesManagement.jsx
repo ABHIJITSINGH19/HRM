@@ -19,10 +19,9 @@ const CandidatesManagement = () => {
   const [showAddModal, setShowAddModal] = useState(false);
 
   const dispatch = useDispatch();
-  const {
-    data: candidates,
-    isLoading,
-  } = useSelector((state) => state.candidateList);
+  const { data: candidates, isLoading } = useSelector(
+    (state) => state.candidateList
+  );
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -195,10 +194,16 @@ const CandidatesManagement = () => {
                   >
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+                    style={{ width: 160 }}
+                  >
                     Experience
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tr-2xl">
+                  <th
+                    className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tr-2xl"
+                    style={{ width: 120 }}
+                  >
                     Action
                   </th>
                 </tr>
@@ -294,10 +299,16 @@ const CandidatesManagement = () => {
                           />
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-600"
+                        style={{ width: 160 }}
+                      >
                         {candidate.experience}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td
+                        className="px-6 py-4 whitespace-nowrap text-sm"
+                        style={{ width: 120 }}
+                      >
                         <IconButton
                           onClick={(event) =>
                             handleMenuOpen(event, candidate._id)
@@ -371,6 +382,7 @@ const CandidatesManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
@@ -395,6 +407,7 @@ const CandidatesManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
