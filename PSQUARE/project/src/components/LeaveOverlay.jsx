@@ -9,11 +9,10 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import InputAdornment from "@mui/material/InputAdornment";
 import { useForm, Controller } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import { createLeave } from "../redux/slice/leaveSlice";
 import Autocomplete from "@mui/material/Autocomplete";
 import { fetchEmployees } from "../redux/slice/employeesSlice";
 
-const LeaveOverlay = ({ open, onClose }) => {
+const LeaveOverlay = ({ open, onClose, onSave }) => {
   const dispatch = useDispatch();
   const { data: employees = [], isLoading: employeesLoading } = useSelector(
     (state) => state.employeesList
@@ -56,7 +55,7 @@ const LeaveOverlay = ({ open, onClose }) => {
     if (data.documents) {
       formData.append("docs", data.documents);
     }
-    dispatch(createLeave(formData));
+    onSave(formData, data.employee);
     reset();
     onClose();
   };
