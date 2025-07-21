@@ -28,26 +28,16 @@ export const fetchLeaves = createAsyncThunk(
 
 export const createLeave = createAsyncThunk(
   "leaveList/createLeave",
-  async (formData, { rejectWithValue }) => {
+  async ({ formData, employee }, { rejectWithValue }) => {
     try {
       const token = sessionStorage.getItem("token");
 
-      let body;
-      if (formData instanceof FormData) {
-        body = formData;
-      } else {
-        body = new FormData();
-        Object.entries(formData).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            body.append(key, value);
-          }
-        });
-      }
       const response = await fetch("http://localhost:4000/api/leaves", {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body,
+        body: formData,
       });
+
       const contentType = response.headers.get("content-type");
       if (!response.ok) {
         let errorData;
@@ -62,9 +52,15 @@ export const createLeave = createAsyncThunk(
             `Failed to create leave (status ${response.status})`
         );
       }
+
       if (contentType && contentType.includes("application/json")) {
         const data = await response.json();
-        return data;
+        const newLeave = data.leave || data;
+
+        return {
+          ...newLeave,
+          employee,
+        };
       } else {
         const data = await response.text();
         return { message: data };
@@ -143,6 +139,9 @@ const leaveSlice = createSlice({
     });
     builder.addCase(createLeave.fulfilled, (state, action) => {
       state.isLoading = false;
+      if (action.payload) {
+        state.data.push(action.payload);
+      }
     });
     builder.addCase(createLeave.rejected, (state, action) => {
       state.isLoading = false;
