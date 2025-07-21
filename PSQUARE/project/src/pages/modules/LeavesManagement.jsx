@@ -1,155 +1,162 @@
 import React, { useState, useEffect } from "react";
-import { Search, MoreVertical, Edit, Trash2 } from "lucide-react";
-import { Menu, MenuItem, IconButton } from "@mui/material";
-import Header from "../../components/Header";
-import Dropdown from "../../components/Dropdown";
-import EditOverlay from "../../components/EditOverlay";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  fetchEmployees,
-  deleteEmployee,
-} from "../../redux/slice/employeesSlice";
+  fetchLeaves,
+  updateLeaveStatus,
+  createLeave,
+} from "../../redux/slice/leaveSlice";
+import { Search, FileText } from "lucide-react";
+import Dropdown from "../../components/Dropdown";
+import Header from "../../components/Header";
+import LeaveOverlay from "../../components/LeaveOverlay";
 import profileImg from "../../assets/profileImg.png";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { fetchEmployees } from "../../redux/slice/employeesSlice";
+import { Badge } from "@mui/material";
+import { PickersDay } from "@mui/x-date-pickers/PickersDay";
+import dayjs from "dayjs";
 
-const EmployeeManagement = () => {
-  const [selectedPosition, setSelectedPosition] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+const statusOptions = ["Approved", "Pending", "Rejected"];
 
+const LeavesManagement = () => {
   const dispatch = useDispatch();
   const {
-    data: employees,
+    data: leavesData,
     isLoading,
     isError,
     errorMessage,
-  } = useSelector((state) => state.employeesList);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-    }, 2000);
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [searchTerm]);
+  } = useSelector((state) => state.leaveList);
+  const { data: employees = [] } = useSelector((state) => state.employeesList);
+  const [statusFilter, setStatusFilter] = useState("Status");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddLeaveModal, setShowAddLeaveModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
 
   useEffect(() => {
     dispatch(
-      fetchEmployees({ search: debouncedSearch, position: selectedPosition })
+      fetchLeaves({
+        search: searchQuery,
+        status: statusFilter !== "Status" ? statusFilter.toLowerCase() : "",
+      })
     );
-  }, [dispatch, debouncedSearch, selectedPosition]);
+  }, [dispatch, searchQuery, statusFilter]);
 
-  const filteredEmployees = Array.isArray(employees) ? employees : [];
+  useEffect(() => {
+    dispatch(fetchEmployees());
+  }, [dispatch]);
 
-  const handleMenuOpen = (event, employeeId) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedEmployeeId(employeeId);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleEditEmployee = () => {
-    handleMenuClose();
-    setShowEditModal(true);
-  };
-
-  const handleDeleteEmployee = async () => {
-    handleMenuClose();
-    if (!selectedEmployeeId) return;
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this employee?"
-    );
-    if (!confirmed) return;
+  const handleSaveLeave = async (formData, employee) => {
     try {
-      await dispatch(deleteEmployee(selectedEmployeeId)).unwrap();
+      await dispatch(createLeave({ formData, employee })).unwrap();
+      setShowAddLeaveModal(false);
+    } catch (error) {
+      console.error("Failed to add leave:", error);
+    }
+  };
+
+  const handleStatusChange = async (leaveId, newStatus) => {
+    try {
+      await dispatch(
+        updateLeaveStatus({ id: leaveId, status: newStatus.toLowerCase() })
+      ).unwrap();
       dispatch(
-        fetchEmployees({ search: searchTerm, position: selectedPosition })
+        fetchLeaves({
+          search: searchQuery,
+          status: statusFilter !== "Status" ? statusFilter.toLowerCase() : "",
+        })
       );
-    } catch (err) {
-      alert("Failed to delete employee: " + err);
+    } catch (error) {
+      console.error("Failed to update leave status:", error);
     }
-    setSelectedEmployeeId(null);
   };
+  const approvedLeaves =
+    leavesData?.filter((leave) => leave.status === "approved") || [];
 
-  const handleCloseEditModal = () => {
-    setShowEditModal(false);
-    setSelectedEmployeeId(null);
-  };
+  const highlightedDays = approvedLeaves.map((leave) =>
+    dayjs(leave.fromDate).format("YYYY-MM-DD")
+  );
 
-  const handleEditSuccess = () => {
-    dispatch(
-      fetchEmployees({ search: searchTerm, position: selectedPosition })
-    );
-    handleCloseEditModal();
-  };
+  const displayedApprovedLeaves = selectedDate
+    ? approvedLeaves.filter((leave) =>
+        dayjs(leave.fromDate).isSame(selectedDate, "day")
+      )
+    : approvedLeaves;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    if (isNaN(date)) {
-      return "Invalid Date";
-    }
-    return date.toLocaleDateString("en-GB");
-  };
+  function CustomDay(props) {
+    const { day, outsideCurrentMonth, ...other } = props;
+    const isSelected =
+      !outsideCurrentMonth &&
+      highlightedDays.indexOf(day.format("YYYY-MM-DD")) >= 0;
 
-  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen text-2xl font-semibold">
-        Loading...
-      </div>
+      <Badge
+        key={props.day.toString()}
+        overlap="circular"
+        badgeContent={isSelected ? "1" : undefined}
+        sx={
+          isSelected
+            ? {
+                "& .MuiBadge-badge": {
+                  backgroundColor: "#7c3aed",
+                  color: "#fff",
+                  borderRadius: "50%",
+                  minWidth: 16,
+                  height: 16,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  top: 6,
+                  right: 6,
+                  boxShadow: "0 2px 8px rgba(124,58,237,0.10)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                },
+              }
+            : {}
+        }
+      >
+        <PickersDay
+          {...other}
+          outsideCurrentMonth={outsideCurrentMonth}
+          day={day}
+        />
+      </Badge>
     );
   }
-
-  if (isError) {
-    return (
-      <div className="flex items-center justify-center h-screen text-xl text-red-600 font-semibold">
-        {errorMessage || "Error loading employees."}
-      </div>
-    );
-  }
-
   return (
-    <div className="w-full min-h-screen p-0 bg-white">
+    <div className="w-full h-screen p-0">
       <div className="w-[95%] mx-auto h-full flex flex-col">
         <div className="rounded-t-2xl mb-4">
           <Header
-            className="w-full flex flex-col sm:flex-row sm:justify-between sm:items-center px-2 sm:px-6 gap-2 sm:gap-0"
+            className="w-full flex justify-between items-center px-6"
             style={{ gap: 0 }}
           >
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-              <div className="relative w-full sm:w-auto">
+            <div className="flex items-center space-x-4">
+              <div className="relative">
                 <Dropdown
-                  options={["Designer", "Developer", "Human Resource"]}
-                  value={selectedPosition}
-                  onChange={setSelectedPosition}
+                  options={statusOptions}
+                  value={statusFilter === "Status" ? "" : statusFilter}
+                  onChange={setStatusFilter}
                   displayEmpty
-                  renderValue={(selected) =>
-                    selected ? (
-                      selected
-                    ) : (
-                      <span style={{ color: "#A4A4A4" }}>Position</span>
-                    )
-                  }
+                  placeholder="Status"
                 />
               </div>
             </div>
             <div
-              className="flex items-center gap-2 sm:gap-4 ml-0 sm:ml-auto w-full sm:w-auto"
+              className="flex items-center gap-4 ml-auto"
               style={{ height: 38 }}
             >
-              <div className="relative w-full sm:w-[240px] h-[38px]">
+              <div className="relative" style={{ width: 240, height: 38 }}>
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-full pl-10 pr-4 py-2 bg-white border border-[#A4A4A4] text-sm sm:text-base"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-full pl-10 pr-4 py-2 bg-white border border-[#A4A4A4]"
                   style={{
                     borderRadius: 50,
                     paddingTop: 8,
@@ -159,165 +166,262 @@ const EmployeeManagement = () => {
                   }}
                 />
               </div>
+              <button
+                onClick={() => setShowAddLeaveModal(true)}
+                className="text-white transition-colors"
+                style={{
+                  background: "#4D007D",
+                  borderRadius: 50,
+                  width: 189,
+                  height: 38,
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  paddingLeft: 40,
+                  paddingRight: 40,
+                }}
+              >
+                Add Leave
+              </button>
             </div>
           </Header>
         </div>
-        <div className="rounded-b-2xl shadow-lg p-0 overflow-x-auto w-full ml-0">
-          <div className="min-w-[600px] sm:min-w-0 overflow-x-auto">
-            <table className="min-w-full text-xs sm:text-sm">
-              <thead className="bg-purple-800">
-                <tr>
-                  <th className="px-2 sm:px-6 py-3 sm:py-5 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider rounded-tl-2xl">
-                    Profile
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Employee Name
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Email Address
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Phone Number
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Position
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Department
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider">
-                    Date of Joining
-                  </th>
-                  <th className="px-2 sm:px-6 py-3 text-left text-xs sm:text-xs font-medium text-white uppercase tracking-wider rounded-tr-2xl">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white">
-                {filteredEmployees.map((employee) => (
-                  <tr
-                    key={employee._id}
-                    className="hover:bg-gray-50 transition"
-                  >
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
-                      <img
-                        src={profileImg}
-                        alt={employee.name}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
-                      />
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                      {employee.name}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">
-                      {employee.email}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">
-                      {employee.phone}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">
-                      {employee.position}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">
-                      {employee.department}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-600">
-                      {formatDate(employee.dateOfJoining)}
-                    </td>
-                    <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
-                      <IconButton
-                        onClick={(event) => handleMenuOpen(event, employee._id)}
-                        size="small"
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <MoreVertical className="h-5 w-5" />
-                      </IconButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="flex flex-row gap-4 w-full">
+          <div className="flex-1 flex flex-col">
+            <div className="rounded-b-2xl shadow-lg p-0 overflow-hidden w-[100%] ml-0">
+              <div className="overflow-x-auto">
+                <div className="bg-purple-800 text-white font-semibold px-6 py-4 text-lg rounded-t-2xl">
+                  Applied Leaves
+                </div>
+                {isLoading ? (
+                  <div className="p-6 text-center">Loading...</div>
+                ) : isError ? (
+                  <div className="p-6 text-center text-red-500">
+                    {errorMessage}
+                  </div>
+                ) : (
+                  <table className="min-w-full">
+                    <thead className="bg-purple-800">
+                      <tr>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider ">
+                          Profile
+                        </th>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Reason
+                        </th>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-2 text-left text-xs font-medium text-white uppercase tracking-wider ">
+                          Docs
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white">
+                      {Array.isArray(leavesData) && leavesData.length > 0 ? (
+                        leavesData.map((leave) => (
+                          <tr
+                            key={leave._id || leave.id}
+                            className="hover:bg-gray-50 transition"
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <img
+                                src={leave.profile || profileImg}
+                                alt={leave.employeeName || leave.name || "-"}
+                                className="w-10 h-10 rounded-full"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {leave.employeeName ||
+                                  leave.employee?.name ||
+                                  leave.name ||
+                                  "-"}
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {leave.designation ||
+                                  leave.employee?.position ||
+                                  leave.position ||
+                                  "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {leave.fromDate || leave.date
+                                  ? dayjs(leave.fromDate || leave.date).format(
+                                      "DD/MM/YYYY"
+                                    )
+                                  : "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                {leave.reason || "-"}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <Dropdown
+                                options={statusOptions}
+                                value={
+                                  leave.status
+                                    ? leave.status.charAt(0).toUpperCase() +
+                                      leave.status.slice(1)
+                                    : "Pending"
+                                }
+                                onChange={(val) =>
+                                  handleStatusChange(leave._id || leave.id, val)
+                                }
+                                displayEmpty
+                                placeholder="Status"
+                                renderValue={(selected) => {
+                                  let color = "#F59E0B";
+                                  if (selected === "Approved")
+                                    color = "#22C55E";
+                                  if (selected === "Rejected")
+                                    color = "#EF4444";
+                                  return (
+                                    <span style={{ color, fontWeight: 300 }}>
+                                      {selected}
+                                    </span>
+                                  );
+                                }}
+                                renderOption={(option) => {
+                                  let color = "#F59E0B";
+                                  if (option === "Approved") color = "#22C55E";
+                                  if (option === "Rejected") color = "#EF4444";
+                                  return (
+                                    <span style={{ color, fontWeight: 300 }}>
+                                      {option}
+                                    </span>
+                                  );
+                                }}
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                              {leave.docs ? (
+                                <a
+                                  href={leave.docs}
+                                  className="text-purple-700 hover:text-purple-900"
+                                  download
+                                >
+                                  <FileText className="h-5 w-5 mx-auto" />
+                                </a>
+                              ) : (
+                                <span className="text-gray-300 text-lg">
+                                  &ndash;
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            className="text-center py-6 text-gray-400"
+                          >
+                            No leaves found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="w-[350px] flex flex-col gap-6">
+            <div className="bg-white rounded-2xl shadow-lg p-0 overflow-hidden">
+              <div className="bg-purple-800 text-white font-semibold px-4 py-3 rounded-t-2xl">
+                Leave Calendar
+              </div>
+              <div className="p-4">
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DateCalendar
+                    value={selectedDate}
+                    onChange={(newDate) => {
+                      if (
+                        selectedDate &&
+                        dayjs(newDate).isSame(selectedDate, "day")
+                      ) {
+                        setSelectedDate(null);
+                      } else {
+                        setSelectedDate(newDate);
+                      }
+                    }}
+                    slots={{ day: CustomDay }}
+                  />
+                </LocalizationProvider>
+                <div className="mt-6">
+                  <div className="font-semibold px-4 py-3 mb-2 text-purple-800 text-base">
+                    Approved Leaves{" "}
+                    {selectedDate &&
+                      `for ${dayjs(selectedDate).format("MMM D")}`}
+                  </div>
+                  <div className="">
+                    {displayedApprovedLeaves.length > 0 ? (
+                      displayedApprovedLeaves.map((leave) => (
+                        <div
+                          key={leave._id || leave.id}
+                          className="flex items-center gap-3 mb-4 last:mb-0"
+                        >
+                          <img
+                            src={leave.profile || profileImg}
+                            alt={
+                              leave.employeeName ||
+                              leave.employee?.name ||
+                              leave.name ||
+                              "-"
+                            }
+                            className="w-8 h-8 rounded-full"
+                          />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {leave.employeeName ||
+                                leave.employee?.name ||
+                                leave.name ||
+                                "-"}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {leave.designation ||
+                                leave.employee?.position ||
+                                leave.position ||
+                                "-"}
+                            </div>
+                          </div>
+                          <div className="ml-auto text-xs text-gray-500">
+                            {dayjs(leave.fromDate || leave.date).format(
+                              "MMM D"
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-400 text-center py-4">
+                        {selectedDate
+                          ? "No approved leaves on this date."
+                          : "No approved leaves."}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        {showEditModal && (
-          <EditOverlay
-            onClose={handleCloseEditModal}
-            employeeId={selectedEmployeeId}
-            onEditSuccess={handleEditSuccess}
-          />
-        )}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          transformOrigin={{ vertical: "top", horizontal: "right" }}
-          slotProps={{
-            paper: {
-              sx: {
-                borderRadius: 3,
-                boxShadow: "0px 8px 32px rgba(0,0,0,0.16)",
-                mt: 1,
-                px: 1,
-              },
-            },
-            list: { sx: { py: 1 } },
-          }}
-        >
-          <MenuItem
-            onClick={handleEditEmployee}
-            className="flex items-center"
-            sx={{
-              borderRadius: 9999,
-              my: 0.5,
-              px: 2.5,
-              py: 1.2,
-              fontSize: 16,
-              fontWeight: 500,
-              minHeight: 36,
-              display: "flex",
-              alignItems: "center",
-              backgroundColor: "transparent !important",
-              color: "inherit",
-              "&:hover": {
-                backgroundColor: "#F3F0FF",
-                fontWeight: 700,
-                boxShadow: "0px 2px 8px rgba(124,58,237,0.08)",
-              },
-            }}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Employee
-          </MenuItem>
-          <MenuItem
-            onClick={handleDeleteEmployee}
-            className="flex items-center"
-            sx={{
-              borderRadius: 9999,
-              my: 0.5,
-              px: 2.5,
-              py: 1.2,
-              fontSize: 16,
-              fontWeight: 500,
-              minHeight: 36,
-              display: "flex",
-              alignItems: "center",
-              backgroundColor: "transparent !important",
-              color: "inherit",
-              "&:hover": {
-                backgroundColor: "#F3F0FF",
-                fontWeight: 700,
-                boxShadow: "0px 2px 8px rgba(124,58,237,0.08)",
-              },
-            }}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </MenuItem>
-        </Menu>
+        <LeaveOverlay
+          open={showAddLeaveModal}
+          onClose={() => setShowAddLeaveModal(false)}
+          onSave={handleSaveLeave}
+        />
       </div>
     </div>
   );
 };
 
-export default EmployeeManagement;
+export default LeavesManagement;
