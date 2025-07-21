@@ -278,6 +278,7 @@ const EmployeeManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
@@ -302,6 +303,7 @@ const EmployeeManagement = () => {
               display: "flex",
               alignItems: "center",
               backgroundColor: "transparent !important",
+              color: "inherit",
               "&:hover": {
                 backgroundColor: "#F3F0FF",
                 fontWeight: 700,
