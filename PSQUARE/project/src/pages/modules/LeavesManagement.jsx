@@ -4,6 +4,7 @@ import {
   fetchLeaves,
   updateLeaveStatus,
   createLeave,
+  downloadLeaveDocs,
 } from "../../redux/slice/leaveSlice";
 import { Search, FileText } from "lucide-react";
 import Dropdown from "../../components/Dropdown";
@@ -46,6 +47,18 @@ const LeavesManagement = () => {
   useEffect(() => {
     dispatch(fetchEmployees());
   }, [dispatch]);
+
+  const handleDownloadDocs = (leave) => {
+    if (leave._id || leave.id) {
+      dispatch(
+        downloadLeaveDocs({
+          id: leave._id || leave.id,
+          url: leave.docsDownloadUrl,
+          filename: "leave-doc.pdf",
+        })
+      );
+    }
+  };
 
   const handleSaveLeave = async (formData, employee) => {
     try {
@@ -303,14 +316,21 @@ const LeavesManagement = () => {
                               />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                              {leave.docs ? (
-                                <a
-                                  href={leave.docs}
+                              {leave.docsDownloadUrl ? (
+                                <button
+                                  type="button"
                                   className="text-purple-700 hover:text-purple-900"
-                                  download
+                                  onClick={() => handleDownloadDocs(leave)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    padding: 0,
+                                    cursor: "pointer",
+                                  }}
+                                  title="Download Document"
                                 >
                                   <FileText className="h-5 w-5 mx-auto" />
-                                </a>
+                                </button>
                               ) : (
                                 <span className="text-gray-300 text-lg">
                                   &ndash;
