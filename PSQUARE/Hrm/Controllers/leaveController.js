@@ -28,7 +28,7 @@ export const getAllLeaves = catchAsync(async (req, res, next) => {
   const leavesWithDownloadUrl = leaves.map((leave) => {
     const leaveObj = leave.toObject();
     leaveObj.docsDownloadUrl = leave.docs
-      ? `${req.protocol}://${req.get("host")}/api/leaves/${leave._id}/download`
+      ? `${req.protocol}://${req.get("host")}/api/leaves/${leave._id}/docs`
       : null;
     return leaveObj;
   });
