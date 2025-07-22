@@ -57,7 +57,7 @@ export const createLeave = catchAsync(async (req, res, next) => {
       name: employeeName,
       status: "present",
     });
-    console.timeEnd("employeeLookupByName");
+   
     if (!empByName) {
       console.timeEnd("totalCreateLeave");
       return next(
@@ -69,17 +69,17 @@ export const createLeave = catchAsync(async (req, res, next) => {
     console.timeEnd("employeeLookupByName");
   }
 
-  // Authorization Check
+  
   if (req.user.role !== "HR" && req.user.role !== "Admin") {
     if (req.user.id !== employee) {
-      console.timeEnd("totalCreateLeave");
+      
       return next(new AppError("You can only create leave for yourself", 403));
     }
   }
 
-  // Validation
+ 
   if (!employee || !fromDate || !reason || !designation) {
-    console.timeEnd("totalCreateLeave");
+   
     return next(
       new AppError(
         "Employee (or employeeName), fromDate, reason, and designation are required",
@@ -89,29 +89,26 @@ export const createLeave = catchAsync(async (req, res, next) => {
   }
 
   if (!req.file || !req.file.path) {
-    console.timeEnd("totalCreateLeave");
+   
     return next(new AppError("Document file is required", 400));
   }
 
-  // Date Format Validation
+  
   const dateRegex = /^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/;
   if (!dateRegex.test(fromDate)) {
-    console.timeEnd("totalCreateLeave");
+   
     return next(new AppError("fromDate must be in mm/dd/yyyy format", 400));
   }
 
-  // Employee Existence Check
-  console.time("employeeLookupById");
+  
   const emp = await Employee.findOne({ _id: employee, status: "present" });
-  console.timeEnd("employeeLookupById");
+ 
   if (!emp) {
-    console.timeEnd("totalCreateLeave");
+   
     return next(new AppError("Only present employees can take leaves", 400));
   }
 
-  // Leave Creation
-  console.time("leaveCreate");
-  // Parse fromDate as UTC noon to avoid timezone issues
+  
   const [month, day, year] = fromDate.split("/");
   const fromDateObj = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
   const docs = req.file.path;
@@ -122,8 +119,7 @@ export const createLeave = catchAsync(async (req, res, next) => {
     reason,
     designation,
   });
-  console.timeEnd("leaveCreate");
-  console.timeEnd("totalCreateLeave");
+  
   res.status(201).json({ status: "success", leave });
 });
 
