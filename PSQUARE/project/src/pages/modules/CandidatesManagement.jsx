@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchCandidates,
   updateCandidate,
+  deleteCandidate,
 } from "../../redux/slice/candidateSlice";
 
 const CandidatesManagement = () => {
@@ -17,6 +18,7 @@ const CandidatesManagement = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
 
   const dispatch = useDispatch();
   const { data: candidates, isLoading } = useSelector(
@@ -44,6 +46,7 @@ const CandidatesManagement = () => {
 
   const handleMenuOpen = (event, candidateId) => {
     setAnchorEl(event.currentTarget);
+    setSelectedCandidateId(candidateId);
   };
 
   const handleMenuClose = () => {
@@ -62,6 +65,21 @@ const CandidatesManagement = () => {
       })
     );
   };
+
+  const handleDeleteCandidate = async () => {
+  if (selectedCandidateId) {
+    await dispatch(deleteCandidate(selectedCandidateId));
+    dispatch(
+      fetchCandidates({
+        search: searchQuery,
+        status: selectedStatus,
+        position: selectedPosition,
+      })
+    );
+    setSelectedCandidateId(null);
+    handleMenuClose();
+  }
+};
 
   if (isLoading) {
     return (
@@ -395,7 +413,7 @@ const CandidatesManagement = () => {
             Download Resume
           </MenuItem>
           <MenuItem
-            onClick={handleMenuClose}
+           onClick={handleDeleteCandidate}
             className="flex items-center"
             sx={{
               borderRadius: 9999,
