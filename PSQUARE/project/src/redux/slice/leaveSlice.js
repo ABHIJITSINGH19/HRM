@@ -109,6 +109,34 @@ export const updateLeaveStatus = createAsyncThunk(
   }
 );
 
+export const downloadLeaveDocs = createAsyncThunk(
+  "leaveList/downloadLeaveDocs",
+  async ({ id, url, filename = "document.pdf" }, { rejectWithValue }) => {
+    try {
+      const token = sessionStorage.getItem("token");
+      const fetchUrl = url || `http://localhost:4000/api/leaves/${id}/docs`;
+      const response = await fetch(fetchUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to download document (status ${response.status})`);
+      }
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      return { success: true };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 const leaveSlice = createSlice({
   name: "leaveList",
   initialState: {
@@ -157,6 +185,19 @@ const leaveSlice = createSlice({
       }
     });
     builder.addCase(updateLeaveStatus.rejected, (state, action) => {
+      state.isError = true;
+      state.errorMessage = action.payload;
+    });
+    builder.addCase(downloadLeaveDocs.pending, (state) => {
+      state.isLoading = true;
+      state.isError = false;
+      state.errorMessage = null;
+    });
+    builder.addCase(downloadLeaveDocs.fulfilled, (state) => {
+      state.isLoading = false;
+    });
+    builder.addCase(downloadLeaveDocs.rejected, (state, action) => {
+      state.isLoading = false;
       state.isError = true;
       state.errorMessage = action.payload;
     });
